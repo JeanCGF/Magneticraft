@@ -1,4 +1,5 @@
 buildscript {
+    ext.kotlin_version = '1.1.0'
     repositories {
         jcenter()
 
@@ -6,14 +7,8 @@ buildscript {
             name = 'forge'
             url = 'http://files.minecraftforge.net/maven'
         }
-        maven{
-            name = "kotlin-eap"
-            url = "https://dl.bintray.com/kotlin/kotlin-eap-1.1/"
-        }
         mavenCentral()
     }
-    kotlin_version = "1.1.0-beta-38"
-
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:2.2-SNAPSHOT'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -37,14 +32,14 @@ sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
 minecraft {
-    version = '1.9.4-12.17.0.1968'
+    version = '1.10.2-12.18.3.2185'
     runDir = 'run'
     useDepAts = true
 
-    replaceIn 'src/main/kotlin/com/cout970/magneticraft/util/Metadata.kt'
+    replaceIn 'src/main/kotlin/com/cout970/magneticraft/Metadata.kt'
     replace '@VERSION@', project.version
 
-    mappings = 'snapshot_20160619'
+    mappings = 'snapshot_20161111'
     makeObfSourceJar = false
 }
 
@@ -98,19 +93,14 @@ repositories {
         name = 'Tesla Api'
         url 'http://maven.epoxide.xyz'
     }
-    maven{
-        name = "kotlin-eap"
-        url = "https://dl.bintray.com/kotlin/kotlin-eap-1.1/"
-    }
     mavenCentral()
 }
 
 dependencies {
-//    shade "coffee.cypher.mcextlib:mc-extlib:$extlib_version"
     shade "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    deobfCompile "mezz.jei:jei_$mc_version:$jei_version"
-    shade files("./lib/ModelLibrary-${model_lib_version}.jar")
-    shade files("./lib/mc-extlib-1.4.0.jar")
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    compile "mezz.jei:jei_$mc_version:$jei_version"
+    shade files("./lib/ModelLibrary-${model_lib_version}.jar", "./lib/librarianlib-${lib_lib_version}.jar", "./lib/dummy-Forgelin-1.4.0.jar")
     compile "net.darkhax.tesla:Tesla:$tesla_version"
 }
 
@@ -134,7 +124,6 @@ jar {
 shadowJar {
     relocate 'kotlin', 'com.cout970.magneticraft.internal.shade.kotlin'
     relocate 'org.jetbrains.annotations', 'com.cout970.magneticraft.internal.shade.annotations'
-//    relocate 'coffee.cypher.mcextlib', 'com.cout970.magneticraft.internal.shade.mcextlib'
     relocate 'com.cout970.loader', 'com.cout970.magneticraft.internal.shade.modellib'
 }
 

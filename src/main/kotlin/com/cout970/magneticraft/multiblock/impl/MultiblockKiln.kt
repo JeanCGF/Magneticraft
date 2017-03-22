@@ -1,8 +1,6 @@
 package com.cout970.magneticraft.multiblock.impl
 
-import coffee.cypher.mcextlib.extensions.aabb.to
-import coffee.cypher.mcextlib.extensions.vectors.plus
-import coffee.cypher.mcextlib.extensions.vectors.times
+
 import com.cout970.magneticraft.block.PROPERTY_ACTIVE
 import com.cout970.magneticraft.block.PROPERTY_CENTER
 import com.cout970.magneticraft.block.PROPERTY_DIRECTION
@@ -17,6 +15,8 @@ import com.cout970.magneticraft.multiblock.MultiblockContext
 import com.cout970.magneticraft.multiblock.components.MainBlockComponent
 import com.cout970.magneticraft.multiblock.components.SingleBlockComponent
 import com.cout970.magneticraft.tilerenderer.PIXEL
+import com.cout970.magneticraft.util.vector.plus
+import com.cout970.magneticraft.util.vector.times
 import net.minecraft.init.Blocks
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
@@ -41,8 +41,15 @@ object MultiblockKiln : Multiblock() {
         val A: IMultiblockComponent = SingleBlockComponent(
                 Blocks.AIR.defaultState, Blocks.AIR.defaultState)
 
-        val B: IMultiblockComponent = SingleBlockComponent(BlockBurntLimestone.defaultState.withProperty(BlockBurntLimestone.LIMESTONE_STATES, BlockLimestone.LimestoneStates.BRICK), replacement)
-        val L: IMultiblockComponent = SingleBlockComponent(BlockBurntLimestone.defaultState.withProperty(BlockBurntLimestone.LIMESTONE_STATES, BlockLimestone.LimestoneStates.NORMAL), replacement)
+        val B: IMultiblockComponent = SingleBlockComponent(
+                BlockBurntLimestone.defaultState
+                        .withProperty(BlockBurntLimestone.LIMESTONE_STATES, BlockLimestone.LimestoneStates.BRICK),
+                replacement)
+
+        val L: IMultiblockComponent = SingleBlockComponent(
+                BlockBurntLimestone.defaultState
+                        .withProperty(BlockBurntLimestone.LIMESTONE_STATES, BlockLimestone.LimestoneStates.NORMAL),
+                replacement)
 
         val D: IMultiblockComponent = SingleBlockComponent(BlockMachineBlock.defaultState, replacement)
 
@@ -79,8 +86,9 @@ object MultiblockKiln : Multiblock() {
         )
     }
 
+    //@formatter:off
     override fun getGlobalCollisionBox(): List<AxisAlignedBB> = listOf(
-            Vec3d(-24.0, 0.0, -24.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) to Vec3d(-16.0, 24.0, 40.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) + Vec3d(0.0, 0.0, 2.0),
+            Vec3d(-24.0, 0.0, -24.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) to Vec3d(-16.0, 24.0, 40.0) * PIXEL + Vec3d(0.0, 0.0, 2.0),
             Vec3d(32.0, 0.0, -24.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) to Vec3d(40.0, 24.0, 40.0) * PIXEL + Vec3d(0.0, 0.0, 2.0),
             Vec3d(-22.0, 24.0, -22.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) to Vec3d(-16.0, 40.0, 38.0) * PIXEL + Vec3d(0.0, 0.0, 2.0),
             Vec3d(32.0, 24.0, -22.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) to Vec3d(38.0, 40.0, 38.0) * PIXEL + Vec3d(0.0, 0.0, 2.0),
@@ -107,6 +115,8 @@ object MultiblockKiln : Multiblock() {
             Vec3d(-10.0, -1.0, 35.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) to Vec3d(-4.0, 44.0, 40.0) * PIXEL + Vec3d(0.0, 0.0, 2.0),
             Vec3d(20.0, -1.0, 35.0) * PIXEL + Vec3d(0.0, 0.0, 2.0) to Vec3d(26.0, 44.0, 40.0) * PIXEL + Vec3d(0.0, 0.0, 2.0)
     )
+    //@formatter:on
 
-    override fun checkExtraRequirements(data: MutableList<BlockData>, context: MultiblockContext): List<ITextComponent> = listOf()
+    override fun checkExtraRequirements(data: MutableList<BlockData>,
+                                        context: MultiblockContext): List<ITextComponent> = listOf()
 }

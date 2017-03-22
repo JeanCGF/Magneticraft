@@ -1,9 +1,13 @@
 package com.cout970.magneticraft.tileentity
 
-import com.cout970.magneticraft.util.set
-import com.cout970.magneticraft.util.get
+import com.cout970.magneticraft.misc.inventory.get
+import com.cout970.magneticraft.misc.inventory.set
+import com.cout970.magneticraft.misc.tileentity.shouldTick
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.registry.ITEM_HANDLER
-import com.cout970.magneticraft.util.shouldTick
+import com.cout970.magneticraft.util.add
+import com.cout970.magneticraft.util.newNbt
+import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.EnumFacing
@@ -11,12 +15,13 @@ import net.minecraft.util.ITickable
 import net.minecraftforge.common.capabilities.Capability
 import net.minecraftforge.items.ItemStackHandler
 
+@TileRegister("kiln_shelf")
 class TileKilnShelf : TileBase(), ITickable {
 
     val inventory: KilnShelfInventory = KilnShelfInventory()
 
     override fun update() {
-        if (!worldObj.isRemote && shouldTick(100)) {
+        if (worldObj.isServer && shouldTick(100)) {
             sendUpdateToNearPlayers()
         }
     }
@@ -27,10 +32,13 @@ class TileKilnShelf : TileBase(), ITickable {
         inventory[0] = stack?.copy()
     }
 
-    override fun save(): NBTTagCompound = NBTTagCompound().apply {
-        if (getStack() != null) {
-            setTag("stack", NBTTagCompound().apply { getStack()?.writeToNBT(this) })
+    override fun save(): NBTTagCompound {
+        val nbt = newNbt {
+            if (getStack() != null) {
+                add("stack", getStack()!!.serializeNBT())
+            }
         }
+        return super.save().also { it.merge(nbt) }
     }
 
     override fun load(nbt: NBTTagCompound) {
@@ -39,13 +47,14 @@ class TileKilnShelf : TileBase(), ITickable {
         } else {
             null
         }
+        super.load(nbt)
     }
 
-    override fun hasCapability(capability: Capability<*>?, facing: EnumFacing?) =
+    override fun hasCapability(capability: Capability<*>, facing: EnumFacing?) =
             (capability == ITEM_HANDLER) || super.hasCapability(capability, facing)
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Any?> getCapability(capability: Capability<T>?, facing: EnumFacing?): T? {
+    override fun <T : Any> getCapability(capability: Capability<T>, facing: EnumFacing?): T? {
         return if (capability == ITEM_HANDLER) {
             inventory as T
         } else {
@@ -55,7 +64,7 @@ class TileKilnShelf : TileBase(), ITickable {
 
     override fun onBreak() {
         super.onBreak()
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             if (inventory[0] != null) {
                 dropItem(inventory[0]!!, pos)
             }

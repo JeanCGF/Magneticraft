@@ -2,9 +2,9 @@ package com.cout970.magneticraft.block.heat
 
 import com.cout970.magneticraft.Magneticraft
 import com.cout970.magneticraft.block.PROPERTY_DIRECTION
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.tileentity.heat.TileBrickFurnace
-import com.cout970.magneticraft.util.get
-import net.minecraft.block.ITileEntityProvider
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.BlockStateContainer
 import net.minecraft.block.state.IBlockState
@@ -20,13 +20,13 @@ import net.minecraft.world.World
 /**
  * Created by cout970 on 04/07/2016.
  */
-object BlockBrickFurnace : BlockHeatMultistate(Material.ROCK, "brick_furnace"), ITileEntityProvider {
+object BlockBrickFurnace : BlockHeatMultistate(Material.ROCK, "brick_furnace") {
 
-    override fun createNewTileEntity(worldIn: World?, meta: Int): TileEntity = TileBrickFurnace()
+    override fun createTileEntity(worldIn: World, meta: IBlockState): TileEntity = TileBrickFurnace()
 
     override fun onBlockActivated(worldIn: World, pos: BlockPos, state: IBlockState?, playerIn: EntityPlayer, hand: EnumHand?, heldItem: ItemStack?, side: EnumFacing?, hitX: Float, hitY: Float, hitZ: Float): Boolean {
         if (!playerIn.isSneaking) {
-            if (!worldIn.isRemote) {
+            if (worldIn.isServer) {
                 playerIn.openGui(Magneticraft, -1, worldIn, pos.x, pos.y, pos.z)
             }
             return true
@@ -39,7 +39,7 @@ object BlockBrickFurnace : BlockHeatMultistate(Material.ROCK, "brick_furnace"), 
         worldIn?.setBlockState(pos, defaultState.withProperty(PROPERTY_DIRECTION, placer.horizontalFacing.opposite))
     }
 
-    override fun getMetaFromState(state: IBlockState): Int = PROPERTY_DIRECTION[state].ordinal
+    override fun getMetaFromState(state: IBlockState): Int = state[PROPERTY_DIRECTION].ordinal
 
     override fun getStateFromMeta(meta: Int): IBlockState = defaultState.withProperty(PROPERTY_DIRECTION, EnumFacing.getHorizontal(meta))
 

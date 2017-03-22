@@ -1,14 +1,18 @@
 package com.cout970.magneticraft.tileentity
 
-import com.cout970.magneticraft.util.set
-import com.cout970.magneticraft.util.get
-import coffee.cypher.mcextlib.extensions.vectors.*
 import com.cout970.magneticraft.api.internal.registries.machines.crushingtable.CrushingTableRecipeManager
 import com.cout970.magneticraft.api.registries.machines.crushingtable.ICrushingTableRecipe
+import com.cout970.magneticraft.misc.inventory.get
+import com.cout970.magneticraft.misc.inventory.set
+import com.cout970.magneticraft.misc.tileentity.shouldTick
+import com.cout970.magneticraft.misc.world.isClient
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.registry.ITEM_HANDLER
 import com.cout970.magneticraft.registry.sounds
-import com.cout970.magneticraft.util.shouldTick
-import com.cout970.magneticraft.util.vector.vec3Of
+import com.cout970.magneticraft.util.add
+import com.cout970.magneticraft.util.newNbt
+import com.cout970.magneticraft.util.vector.*
+import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.particle.ParticleBreaking
@@ -27,6 +31,7 @@ import net.minecraftforge.fml.relauncher.SideOnly
 import net.minecraftforge.items.ItemStackHandler
 import java.util.*
 
+@TileRegister("crushing_table")
 class TileCrushingTable : TileBase(), ITickable {
 
     val inventory: CrushingTableInventory = CrushingTableInventory()
@@ -46,7 +51,7 @@ class TileCrushingTable : TileBase(), ITickable {
     }
 
     override fun update() {
-        if (!worldObj.isRemote && shouldTick(100)) {
+        if (worldObj.isServer && shouldTick(100)) {
             sendUpdateToNearPlayers()
         }
     }
@@ -67,13 +72,13 @@ class TileCrushingTable : TileBase(), ITickable {
         damageTaken += amount
 
         if (damageTaken >= CRUSHING_DAMAGE) {
-            if (world.isRemote) {
+            if (world.isClient) {
                 world.playSound(Minecraft.getMinecraft().thePlayer, pos, sounds["crushing_final"], SoundCategory.BLOCKS, 1F, 1F)
                 spawnParticles()
             }
 
             inventory.setResult(getRecipe(getStack()!!)!!.output)
-        } else if (world.isRemote) {
+        } else if (world.isClient) {
             world.playSound(Minecraft.getMinecraft().thePlayer, pos, sounds["crushing_hit"], SoundCategory.BLOCKS, 1F, 1F)
             spawnParticles()
         }
@@ -82,7 +87,7 @@ class TileCrushingTable : TileBase(), ITickable {
 
     @SideOnly(Side.CLIENT)
     private fun spawnParticles() {
-        val center = pos.toDoubleVec() + vec3Of(0.5, 0.95, 0.5)
+        val center = pos.toVec3d() + vec3Of(0.5, 0.95, 0.5)
         val stack = getStack() ?: return
         val item = stack.item ?: return
 
@@ -92,7 +97,7 @@ class TileCrushingTable : TileBase(), ITickable {
             val rand = Random()
 
             for (i in 0..5) {
-                val particle = factory.getEntityFX(EnumParticleTypes.BLOCK_DUST.particleID, world, center.x, center.y, center.z,
+                val particle = factory.createParticle(EnumParticleTypes.BLOCK_DUST.particleID, world, center.xd, center.yd, center.zd,
                         (rand.nextDouble() - 0.5) * 0.15, rand.nextDouble() * 0.2, (rand.nextDouble() - 0.5) * 0.15, Block.getStateId(state))
                 Minecraft.getMinecraft().effectRenderer.addEffect(particle)
             }
@@ -101,18 +106,21 @@ class TileCrushingTable : TileBase(), ITickable {
             val rand = Random()
 
             for (i in 0..5) {
-                val particle = factory.getEntityFX(EnumParticleTypes.BLOCK_DUST.particleID, world, center.x, center.y, center.z,
+                val particle = factory.createParticle(EnumParticleTypes.BLOCK_DUST.particleID, world, center.xd, center.yd, center.zd,
                         (rand.nextDouble() - 0.5) * 0.15, rand.nextDouble() * 0.2, (rand.nextDouble() - 0.5) * 0.15, Item.getIdFromItem(item), stack.itemDamage)
                 Minecraft.getMinecraft().effectRenderer.addEffect(particle)
             }
         }
     }
 
-    override fun save(): NBTTagCompound = NBTTagCompound().apply {
-        if (getStack() != null) {
-            setTag("stack", NBTTagCompound().apply { getStack()?.writeToNBT(this) })
+    override fun save(): NBTTagCompound {
+        val nbt = newNbt {
+            if (getStack() != null) {
+                add("stack",getStack()!!.serializeNBT())
+            }
+            add("damage", damageTaken)
         }
-        setInteger("damage", damageTaken)
+        return super.save().also { it.merge(nbt) }
     }
 
     override fun load(nbt: NBTTagCompound) {
@@ -122,13 +130,14 @@ class TileCrushingTable : TileBase(), ITickable {
             null
         }
         damageTaken = nbt.getInteger("damage")
+        super.load(nbt)
     }
 
-    override fun hasCapability(capability: Capability<*>?, facing: EnumFacing?) =
+    override fun hasCapability(capability: Capability<*>, facing: EnumFacing?) =
             (capability == ITEM_HANDLER) || super.hasCapability(capability, facing)
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Any?> getCapability(capability: Capability<T>?, facing: EnumFacing?): T? {
+    override fun <T : Any> getCapability(capability: Capability<T>, facing: EnumFacing?): T? {
         return if (capability == ITEM_HANDLER) {
             inventory as T
         } else {
@@ -138,7 +147,7 @@ class TileCrushingTable : TileBase(), ITickable {
 
     override fun onBreak() {
         super.onBreak()
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             if (inventory[0] != null) {
                 dropItem(inventory[0]!!, pos)
             }

@@ -1,11 +1,11 @@
 package com.cout970.magneticraft.block.heat
 
-import com.cout970.magneticraft.api.heat.IHeatHandler
 import com.cout970.magneticraft.block.BlockMultiState
 import com.cout970.magneticraft.block.PROPERTY_DIRECTION
-import com.cout970.magneticraft.registry.NODE_HANDLER
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.tileentity.TraitHeat
+import com.cout970.magneticraft.registry.HEAT_NODE_HANDLER
 import com.cout970.magneticraft.registry.fromTile
-import com.cout970.magneticraft.util.get
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.BlockStateContainer
 import net.minecraft.block.state.IBlockState
@@ -19,6 +19,8 @@ import net.minecraft.world.World
 /**
  * Created by cout970 on 04/07/2016.
  */
+// TODO add to game or remove
+@Suppress("unused")
 object BlockThermometer : BlockMultiState(Material.ROCK, "thermometer_block") {
 
     override fun onBlockPlaced(worldIn: World?, pos: BlockPos?, facing: EnumFacing?, hitX: Float, hitY: Float, hitZ: Float, meta: Int, placer: EntityLivingBase?): IBlockState {
@@ -40,33 +42,32 @@ object BlockThermometer : BlockMultiState(Material.ROCK, "thermometer_block") {
     }
 
     override fun getWeakPower(blockState: IBlockState, blockAccess: IBlockAccess, pos: BlockPos, side: EnumFacing): Int {
-        val tile = blockAccess.getTileEntity(pos.offset(PROPERTY_DIRECTION[blockState])) ?: return 0
-        val handler = NODE_HANDLER!!.fromTile(tile) ?: return 0
-        if (handler is IHeatHandler)
-            return handler.comparatorOutput
+        val tile = blockAccess.getTileEntity(pos.offset(blockState[PROPERTY_DIRECTION])) ?: return 0
+        val handler = HEAT_NODE_HANDLER!!.fromTile(tile) ?: return 0
+        if (handler is TraitHeat)
+            return handler.getComparatorOutput()
         return 0
     }
 
     override fun getStrongPower(blockState: IBlockState, blockAccess: IBlockAccess, pos: BlockPos, side: EnumFacing): Int {
-        val tile = blockAccess.getTileEntity(pos.offset(PROPERTY_DIRECTION[blockState])) ?: return 0
-        val handler = NODE_HANDLER!!.fromTile(tile) ?: return 0
-        if (handler is IHeatHandler)
-            return handler.comparatorOutput
+        val tile = blockAccess.getTileEntity(pos.offset(blockState[PROPERTY_DIRECTION])) ?: return 0
+        val handler = HEAT_NODE_HANDLER!!.fromTile(tile) ?: return 0
+        if (handler is TraitHeat)
+            return handler.getComparatorOutput()
         return 0
     }
 
     override fun getComparatorInputOverride(blockState: IBlockState, worldIn: World, pos: BlockPos): Int {
-        val tile = worldIn.getTileEntity(pos.offset(PROPERTY_DIRECTION[blockState])) ?: return 0
-        val handler = NODE_HANDLER!!.fromTile(tile) ?: return 0
-        if (handler is IHeatHandler)
-            return handler.comparatorOutput
+        val tile = worldIn.getTileEntity(pos.offset(blockState[PROPERTY_DIRECTION])) ?: return 0
+        val handler = HEAT_NODE_HANDLER!!.fromTile(tile) ?: return 0
+        if (handler is TraitHeat)
+            return handler.getComparatorOutput()
         return 0
     }
 
-    override fun getMetaFromState(state: IBlockState): Int = PROPERTY_DIRECTION[state].ordinal
+    override fun getMetaFromState(state: IBlockState): Int = state[PROPERTY_DIRECTION].ordinal
 
     override fun getStateFromMeta(meta: Int): IBlockState = defaultState.withProperty(PROPERTY_DIRECTION, EnumFacing.getFront(meta))
 
     override fun createBlockState(): BlockStateContainer = BlockStateContainer(this, PROPERTY_DIRECTION)
-
 }

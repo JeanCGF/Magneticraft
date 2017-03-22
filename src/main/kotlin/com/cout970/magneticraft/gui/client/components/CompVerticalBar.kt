@@ -2,8 +2,8 @@ package com.cout970.magneticraft.gui.client.components
 
 import com.cout970.magneticraft.gui.client.IComponent
 import com.cout970.magneticraft.gui.client.IGui
+import com.cout970.magneticraft.misc.gui.Box
 import com.cout970.magneticraft.util.clamp
-import com.cout970.magneticraft.util.misc.Box
 import com.cout970.magneticraft.util.resource
 import com.cout970.magneticraft.util.vector.Vec2d
 
@@ -44,9 +44,4 @@ interface IBarProvider {
 open class CallbackBarProvider(val callback: () -> Double, val max: () -> Double, val min: () -> Double) : IBarProvider {
 
     override fun getLevel(): Float = clamp((callback.invoke() - min.invoke()) / (max.invoke() - min.invoke()), 1.0, 0.0).toFloat()
-}
-
-open class InvertedCallbackBarProvider(val callback: () -> Double, val max: () -> Double, val min: () -> Double) : IBarProvider {
-
-    override fun getLevel(): Float = clamp(1 - ((callback.invoke() - min.invoke()) / (max.invoke() - min.invoke())), 1.0, 0.0).toFloat()
 }

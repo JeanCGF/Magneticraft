@@ -1,10 +1,14 @@
 package com.cout970.magneticraft.tileentity.heat
 
-import com.cout970.magneticraft.util.get
-import com.cout970.magneticraft.api.heat.IHeatNode
 import com.cout970.magneticraft.api.internal.heat.HeatContainer
+import com.cout970.magneticraft.misc.inventory.get
+import com.cout970.magneticraft.misc.tileentity.ITileTrait
+import com.cout970.magneticraft.misc.tileentity.TraitHeat
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.registry.ITEM_HANDLER
+import com.cout970.magneticraft.tileentity.TileBase
 import com.cout970.magneticraft.util.*
+import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister
 import net.minecraft.item.ItemFood
 import net.minecraft.item.ItemStack
 import net.minecraft.item.crafting.FurnaceRecipes
@@ -16,17 +20,20 @@ import net.minecraftforge.items.ItemStackHandler
 /**
  * Created by cout970 on 04/07/2016.
  */
-class TileBrickFurnace : TileHeatBase() {
+@TileRegister("brick_furnace")
+class TileBrickFurnace : TileBase() {
 
     val heat = HeatContainer(dissipation = 0.0,
             specificHeat = COPPER_HEAT_CAPACITY * 3,
-            maxHeat = (COPPER_HEAT_CAPACITY * 3 * COPPER_MELTING_POINT).toLong(),
+            maxHeat = COPPER_HEAT_CAPACITY * 3 * COPPER_MELTING_POINT,
             conductivity = DEFAULT_CONDUCTIVITY,
             worldGetter = { this.world },
             posGetter = { this.getPos() })
 
-    override val heatNodes: List<IHeatNode>
-        get() = listOf(heat)
+    val traitHeat: TraitHeat = TraitHeat(this, listOf(heat))
+
+    override val traits: List<ITileTrait> = listOf(traitHeat)
+
 
     val inventory = Inventory()
     var burningTime = 0f
@@ -42,7 +49,7 @@ class TileBrickFurnace : TileHeatBase() {
             }
             if (heat.temperature >= smelting_temp && canSmelt()) {
                 val applied = heat.temperature / smelting_temp
-                heat.pullHeat((applied * FUEL_TO_HEAT).toLong(), false)
+                heat.applyHeat(-applied * FUEL_TO_HEAT, false)
                 burningTime += (SPEED * applied).toFloat()
                 if (burningTime > MAX_BURNING_TIME) {
                     smelt()
@@ -75,10 +82,12 @@ class TileBrickFurnace : TileHeatBase() {
         inventory.ignoreFilter = false
     }
 
-    override fun save(): NBTTagCompound = NBTTagCompound().apply {
-        setTag("inventory", inventory.serializeNBT())
-        setFloat("meltingTime", burningTime)
-        super.save()
+    override fun save(): NBTTagCompound {
+        val nbt = newNbt {
+            add("inventory", inventory.serializeNBT())
+            add("meltingTime", burningTime)
+        }
+        return super.save().also { it.merge(nbt) }
     }
 
     override fun load(nbt: NBTTagCompound) {
@@ -94,19 +103,19 @@ class TileBrickFurnace : TileHeatBase() {
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> getCapability(capability: Capability<T>?, facing: EnumFacing?): T? {
+    override fun <T : Any> getCapability(capability: Capability<T>, facing: EnumFacing?): T? {
         if (capability == ITEM_HANDLER) return inventory as T
         return super.getCapability(capability, facing)
     }
 
-    override fun hasCapability(capability: Capability<*>?, facing: EnumFacing?): Boolean {
+    override fun hasCapability(capability: Capability<*>, facing: EnumFacing?): Boolean {
         if (capability == ITEM_HANDLER) return true
         return super.hasCapability(capability, facing)
     }
 
     override fun onBreak() {
         super.onBreak()
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             for (i in 0 until inventory.slots) {
                 val item = inventory[i]
                 if (item != null) {

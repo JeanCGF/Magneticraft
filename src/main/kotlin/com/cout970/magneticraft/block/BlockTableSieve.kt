@@ -1,8 +1,9 @@
 package com.cout970.magneticraft.block
 
-import coffee.cypher.mcextlib.extensions.aabb.to
+
 import com.cout970.magneticraft.tileentity.TileTableSieve
-import net.minecraft.block.ITileEntityProvider
+import com.cout970.magneticraft.util.vector.toAABBWith
+import com.teamwizardry.librarianlib.common.base.block.BlockModContainer
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.player.EntityPlayer
@@ -18,9 +19,9 @@ import net.minecraft.world.World
 /**
  * Created by cout970 on 13/06/2016.
  */
-object BlockTableSieve : BlockBase(Material.WOOD, "table_sieve"), ITileEntityProvider {
+object BlockTableSieve : BlockModContainer("table_sieve", Material.WOOD) {
 
-    val TABLE_SIEVE_BOX = Vec3d.ZERO to Vec3d(1.0, 9.0 / 16.0, 1.0)
+    val TABLE_SIEVE_BOX = Vec3d.ZERO toAABBWith Vec3d(1.0, 9.0 / 16.0, 1.0)
 
     override fun getBoundingBox(state: IBlockState?, source: IBlockAccess?, pos: BlockPos?) = TABLE_SIEVE_BOX
 
@@ -41,5 +42,5 @@ object BlockTableSieve : BlockBase(Material.WOOD, "table_sieve"), ITileEntityPro
         return false
     }
 
-    override fun createNewTileEntity(worldIn: World?, meta: Int): TileEntity? = TileTableSieve()
+    override fun createTileEntity(world: World, state: IBlockState): TileEntity? = TileTableSieve()
 }

@@ -1,5 +1,7 @@
 package com.cout970.magneticraft.block
 
+import com.cout970.magneticraft.misc.world.isServer
+import com.teamwizardry.librarianlib.common.base.block.BlockMod
 import net.minecraft.block.Block
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
@@ -16,9 +18,9 @@ import java.util.*
 open class BlockFallingBase(
         registryName: String,
         unlocalizedName: String = registryName) :
-        BlockBase(
-                Material.SAND,
+        BlockMod(
                 registryName,
+                Material.SAND,
                 unlocalizedName) {
 
     /**
@@ -38,7 +40,7 @@ open class BlockFallingBase(
     }
 
     override fun updateTick(worldIn: World, pos: BlockPos, state: IBlockState, rand: Random) {
-        if (!worldIn.isRemote) {
+        if (worldIn.isServer) {
             this.checkFallable(worldIn, pos)
         }
     }
@@ -48,8 +50,9 @@ open class BlockFallingBase(
             val i = 32
 
             if (!fallInstantly && worldIn.isAreaLoaded(pos.add(-i, -i, -i), pos.add(i, i, i))) {
-                if (!worldIn.isRemote) {
-                    val entityfallingblock = EntityFallingBlock(worldIn, pos.x.toDouble() + 0.5, pos.y.toDouble(), pos.z.toDouble() + 0.5, worldIn.getBlockState(pos))
+                if (worldIn.isServer) {
+                    val entityfallingblock = EntityFallingBlock(worldIn, pos.x.toDouble() + 0.5, pos.y.toDouble(),
+                            pos.z.toDouble() + 0.5, worldIn.getBlockState(pos))
                     this.onStartFalling(entityfallingblock)
                     worldIn.spawnEntityInWorld(entityfallingblock)
                 }
@@ -58,7 +61,8 @@ open class BlockFallingBase(
                 var blockpos: BlockPos
 
                 blockpos = pos.down()
-                while ((worldIn.isAirBlock(blockpos) || canFallThrough(worldIn.getBlockState(blockpos))) && blockpos.y > 0) {
+                while ((worldIn.isAirBlock(blockpos) || canFallThrough(
+                        worldIn.getBlockState(blockpos))) && blockpos.y > 0) {
                     blockpos = blockpos.down()
                 }
 
@@ -77,9 +81,6 @@ open class BlockFallingBase(
      */
     override fun tickRate(worldIn: World): Int {
         return 2
-    }
-
-    open fun onEndFalling(worldIn: World, pos: BlockPos) {
     }
 
     companion object {

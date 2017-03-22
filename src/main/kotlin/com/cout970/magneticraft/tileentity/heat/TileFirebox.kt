@@ -1,16 +1,24 @@
 package com.cout970.magneticraft.tileentity.heat
 
-import com.cout970.magneticraft.util.get
-import com.cout970.magneticraft.util.set
 import com.cout970.magneticraft.api.heat.IHeatNode
 import com.cout970.magneticraft.api.internal.heat.HeatContainer
 import com.cout970.magneticraft.block.PROPERTY_DIRECTION
 import com.cout970.magneticraft.config.Config
 import com.cout970.magneticraft.gui.common.DATA_ID_MACHINE_HEAT
 import com.cout970.magneticraft.gui.common.DATA_ID_MACHINE_WORKING
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.block.isIn
+import com.cout970.magneticraft.misc.inventory.consumeItem
+import com.cout970.magneticraft.misc.inventory.get
+import com.cout970.magneticraft.misc.network.IBD
+import com.cout970.magneticraft.misc.tileentity.ITileTrait
+import com.cout970.magneticraft.misc.tileentity.TraitHeat
+import com.cout970.magneticraft.misc.tileentity.shouldTick
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.registry.ITEM_HANDLER
+import com.cout970.magneticraft.tileentity.TileBase
 import com.cout970.magneticraft.util.*
-import com.cout970.magneticraft.util.misc.IBD
+import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntityFurnace
 import net.minecraft.util.EnumFacing
@@ -22,7 +30,8 @@ import net.minecraftforge.items.ItemStackHandler
  * Created by cout970 on 04/07/2016.
  */
 
-class TileFirebox : TileHeatBase() {
+@TileRegister("firebox")
+class TileFirebox : TileBase() {
 
     companion object {
         val FUEL_TO_HEAT = 0.5f
@@ -36,13 +45,15 @@ class TileFirebox : TileHeatBase() {
 
     val heat = HeatContainer(dissipation = 0.0,
             specificHeat = COPPER_HEAT_CAPACITY * 3,
-            maxHeat = (COPPER_HEAT_CAPACITY * 3 * COPPER_MELTING_POINT).toLong(),
+            maxHeat = COPPER_HEAT_CAPACITY * 3 * COPPER_MELTING_POINT,
             conductivity = DEFAULT_CONDUCTIVITY,
             worldGetter = { this.world },
             posGetter = { this.getPos() })
 
-    override val heatNodes: List<IHeatNode>
-        get() = listOf(heat)
+    val heatNodes: List<IHeatNode> = listOf(heat)
+    val traitHeat: TraitHeat = TraitHeat(this, heatNodes)
+
+    override val traits: List<ITileTrait> = listOf(traitHeat)
 
     override fun update() {
         if (worldObj.isServer) {
@@ -64,15 +75,15 @@ class TileFirebox : TileHeatBase() {
             if (burningTime > 0 && heat.heat < heat.maxHeat && heat.temperature < maxFuelTemp) {
                 val burningSpeed = Math.ceil(Config.fireboxMaxProduction / 10.0).toInt()
                 burningTime -= burningSpeed
-                heat.pushHeat((burningSpeed * FUEL_TO_HEAT).toLong(), false)
+                heat.applyHeat(burningSpeed.toDouble() * FUEL_TO_HEAT, false)
             }
 
             //sends an update to the client to start/stop the fan animation
             if (shouldTick(200)) {
                 val data = IBD()
-                data.setBoolean(DATA_ID_MACHINE_WORKING, heat.temperature > heat.ambientTemperature + 1)
-                data.setLong(DATA_ID_MACHINE_HEAT, heat.heat)
-                sendSyncData(data, Side.CLIENT)
+                data.setBoolean(DATA_ID_MACHINE_WORKING, heat.temperature > STANDARD_AMBIENT_TEMPERATURE + 1)
+                data.setDouble(DATA_ID_MACHINE_HEAT, heat.heat)
+                //sendSyncData(data, Side.CLIENT)
             }
             super.update()
         }
@@ -83,15 +94,17 @@ class TileFirebox : TileHeatBase() {
     override fun receiveSyncData(data: IBD, side: Side) {
         super.receiveSyncData(data, side)
         if (side == Side.SERVER) {
-            data.getLong(DATA_ID_MACHINE_WORKING, { heat.heat = it })
+            data.getDouble(DATA_ID_MACHINE_WORKING, { heat.heat = it })
         }
     }
 
-    override fun save(): NBTTagCompound = NBTTagCompound().apply {
-        setTag("inventory", inventory.serializeNBT())
-        setFloat("maxBurningTime", maxBurningTime)
-        setFloat("meltingTime", burningTime)
-        super.save()
+    override fun save(): NBTTagCompound {
+        val nbt = newNbt {
+            add("inventory", inventory.serializeNBT())
+            add("maxBurningTime", maxBurningTime)
+            add("meltingTime", burningTime)
+        }
+        return super.save().also { it.merge(nbt) }
     }
 
     override fun load(nbt: NBTTagCompound) {
@@ -103,7 +116,7 @@ class TileFirebox : TileHeatBase() {
 
     override fun onBreak() {
         super.onBreak()
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             if (inventory[0] != null) {
                 dropItem(inventory[0]!!, pos)
             }
@@ -111,12 +124,12 @@ class TileFirebox : TileHeatBase() {
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> getCapability(capability: Capability<T>?, facing: EnumFacing?): T? {
+    override fun <T : Any> getCapability(capability: Capability<T>, facing: EnumFacing?): T? {
         if (capability == ITEM_HANDLER) return inventory as T
         return super.getCapability(capability, facing)
     }
 
-    override fun hasCapability(capability: Capability<*>?, facing: EnumFacing?): Boolean {
+    override fun hasCapability(capability: Capability<*>, facing: EnumFacing?): Boolean {
         if (capability == ITEM_HANDLER) return true
         return super.hasCapability(capability, facing)
     }
@@ -124,7 +137,7 @@ class TileFirebox : TileHeatBase() {
     fun getDirection(): EnumFacing {
         val state = world.getBlockState(pos)
         if (PROPERTY_DIRECTION.isIn(state)) {
-            return PROPERTY_DIRECTION[state]
+            return state[PROPERTY_DIRECTION]
         }
         return EnumFacing.NORTH
     }

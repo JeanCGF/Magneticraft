@@ -4,7 +4,7 @@ import net.minecraftforge.fml.common.Loader
 
 /**
  * Created by cout970 on 22/07/2016.
- * Allows compatability with other mods such as JEI or TESLA.
+ * Allows compatibility with other mods such as JEI or TESLA.
  */
 object IntegrationHandler {
 
@@ -12,7 +12,7 @@ object IntegrationHandler {
     var TESLA = false
 
     fun preInit(){
-        JEI = Loader.isModLoaded("JEI")
+        JEI = Loader.isModLoaded("JEI") || Loader.isModLoaded("jei")
         TESLA = Loader.isModLoaded("tesla")
     }
 }

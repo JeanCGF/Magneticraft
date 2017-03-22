@@ -1,12 +1,9 @@
 package com.cout970.magneticraft.proxy
 
-import coffee.cypher.mcextlib.extensions.resources.toModel
+
 import com.cout970.loader.api.ModelRegistry
-import com.cout970.magneticraft.block.itemblock.ItemBlockBase
+import com.cout970.magneticraft.MOD_ID
 import com.cout970.magneticraft.gui.client.TooltipHandler
-import com.cout970.magneticraft.item.ItemBase
-import com.cout970.magneticraft.registry.blocks
-import com.cout970.magneticraft.registry.items
 import com.cout970.magneticraft.registry.registerColorHandlers
 import com.cout970.magneticraft.registry.registerSounds
 import com.cout970.magneticraft.tileentity.*
@@ -16,9 +13,7 @@ import com.cout970.magneticraft.tileentity.electric.TileElectricPoleAdapter
 import com.cout970.magneticraft.tileentity.electric.TileIncendiaryGenerator
 import com.cout970.magneticraft.tileentity.multiblock.*
 import com.cout970.magneticraft.tilerenderer.*
-import com.cout970.magneticraft.util.MOD_ID
 import net.minecraftforge.client.event.ModelBakeEvent
-import net.minecraftforge.client.model.ModelLoader
 import net.minecraftforge.client.model.obj.OBJLoader
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.client.registry.ClientRegistry
@@ -29,6 +24,7 @@ import net.minecraftforge.fml.relauncher.Side
  * This class extends the functionality of CommonProxy but adds
  * thing only for the client: sounds, models, textures and renders
  */
+@Suppress("unused")
 class ClientProxy : CommonProxy() {
 
     //List of registered TileEntityRenderers
@@ -44,18 +40,6 @@ class ClientProxy : CommonProxy() {
         OBJLoader.INSTANCE.addDomain(MOD_ID)
         //This is from other library
         ModelRegistry.registerDomain(MOD_ID)
-
-        //Item renders
-        items.forEach { it.registerInvRender() }
-        //ItemBlock renders
-        blocks.values.forEach {
-            it.registerInvRender()
-            val mapper = it.blockBase.getCustomStateMapper()
-            if (mapper != null) {
-                ModelLoader.setCustomStateMapper(it.block, mapper)
-            }
-        }
-
         //TileEntity renderers
         register(TileCrushingTable::class.java, TileRendererCrushingTable)
         register(TileFeedingTrough::class.java, TileRendererFeedingTrough)
@@ -77,17 +61,7 @@ class ClientProxy : CommonProxy() {
         MinecraftForge.EVENT_BUS.register(TooltipHandler())
     }
 
-    fun ItemBase.registerInvRender() {
-        variants.forEach {
-            ModelLoader.setCustomModelResourceLocation(this, it.key, registryName.toModel(it.value))
-        }
-    }
 
-    fun ItemBlockBase.registerInvRender() {
-        blockBase.inventoryVariants.forEach {
-            ModelLoader.setCustomModelResourceLocation(this, it.key, registryName.toModel(it.value))
-        }
-    }
 
     override fun init() {
         super.init()

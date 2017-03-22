@@ -1,12 +1,16 @@
 package com.cout970.magneticraft.tileentity
 
-import coffee.cypher.mcextlib.extensions.aabb.to
-import com.cout970.magneticraft.util.get
-import coffee.cypher.mcextlib.extensions.vectors.plus
-import coffee.cypher.mcextlib.extensions.vectors.toDoubleVec
 import com.cout970.magneticraft.block.BlockFeedingTrough
-import com.cout970.magneticraft.util.shouldTick
+import com.cout970.magneticraft.misc.inventory.get
+import com.cout970.magneticraft.misc.tileentity.shouldTick
+import com.cout970.magneticraft.misc.world.isServer
+import com.cout970.magneticraft.util.add
+import com.cout970.magneticraft.util.newNbt
+import com.cout970.magneticraft.util.vector.plus
+import com.cout970.magneticraft.util.vector.toAABBWith
+import com.cout970.magneticraft.util.vector.toVec3d
 import com.mojang.authlib.GameProfile
+import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister
 import net.minecraft.entity.passive.EntityAnimal
 import net.minecraft.init.Items
 import net.minecraft.item.Item
@@ -22,6 +26,7 @@ import java.util.*
 /**
  * Created by cout970 on 24/06/2016.
  */
+@TileRegister("feeding_trough")
 class TileFeedingTrough : TileBase(), ITickable {
     val ACCEPTED_ITEMS: List<Item> = listOf(Items.WHEAT, Items.CARROT, Items.WHEAT_SEEDS)
     val MAX_ANIMALS = 30
@@ -31,21 +36,21 @@ class TileFeedingTrough : TileBase(), ITickable {
     val inventory = ItemStackHandler()
 
     override fun update() {
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             if (shouldTick(200)) {
                 sendUpdateToNearPlayers()
             }
             if (shouldTick(WAIT_TIME) && inventory[0] != null) {
                 //getting the bounding box to search animals
-                var start = pos.toDoubleVec().addVector(-3.5, -1.0, -3.5)
-                var end = pos.toDoubleVec().addVector(4.5, 2.0, 4.5)
+                var start = pos.toVec3d().addVector(-3.5, -1.0, -3.5)
+                var end = pos.toVec3d().addVector(4.5, 2.0, 4.5)
                 val dir = worldObj.getBlockState(pos).getValue(BlockFeedingTrough.FEEDING_TROUGH_SIDE_POSITION)
                 if (dir.axisDirection == EnumFacing.AxisDirection.POSITIVE) {
-                    end += dir.directionVec.toDoubleVec()
+                    end += dir.directionVec.toVec3d()
                 } else {
-                    start += dir.directionVec.toDoubleVec()
+                    start += dir.directionVec.toVec3d()
                 }
-                val box = start to end
+                val box = start toAABBWith end
                 //getting the animals
                 val totalAnimals = worldObj.getEntitiesInAABBexcluding(null, box, { it is EntityAnimal })
                 val validAnimals = totalAnimals.map { it as EntityAnimal }
@@ -78,16 +83,21 @@ class TileFeedingTrough : TileBase(), ITickable {
         return inventory.extractItem(0, 64, false)
     }
 
-    override fun save(): NBTTagCompound =
-            NBTTagCompound().apply { setTag("inventory", inventory.serializeNBT()) }
+    override fun save(): NBTTagCompound {
+        val nbt = newNbt {
+            add("inventory", inventory.serializeNBT())
+        }
+        return super.save().also { it.merge(nbt) }
+    }
 
     override fun load(nbt: NBTTagCompound) {
         inventory.deserializeNBT(nbt.getCompoundTag("inventory"))
+        super.load(nbt)
     }
 
     override fun onBreak() {
         super.onBreak()
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             if (inventory[0] != null) {
                 dropItem(inventory[0]!!, pos)
             }

@@ -1,7 +1,7 @@
 package com.cout970.magneticraft.computer
 
 import com.cout970.magneticraft.api.computer.IDevice
-import com.cout970.magneticraft.util.misc.IBD
+import com.cout970.magneticraft.misc.network.IBD
 import com.cout970.magneticraft.util.split
 import com.cout970.magneticraft.util.splitRange
 import com.cout970.magneticraft.util.splitSet
@@ -133,6 +133,8 @@ class DeviceMonitor(val parent: TileEntity) : IDevice {
         keyPressed = key
     }
 
+    // Not sure if i want to implement this
+    @Suppress("unused")
     fun onCursorClick(x: Int, y: Int, button: Int) {
         isMousePressed = true
         mouseX = x

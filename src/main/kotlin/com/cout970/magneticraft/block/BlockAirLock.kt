@@ -1,7 +1,9 @@
 package com.cout970.magneticraft.block
 
+import com.cout970.magneticraft.misc.block.get
 import com.cout970.magneticraft.tileentity.electric.TileAirLock
-import com.cout970.magneticraft.util.get
+import com.teamwizardry.librarianlib.common.base.block.BlockMod
+import com.teamwizardry.librarianlib.common.base.block.BlockModContainer
 import net.minecraft.block.ITileEntityProvider
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
@@ -12,9 +14,9 @@ import net.minecraft.world.World
 /**
  * Created by cout970 on 18/08/2016.
  */
-object BlockAirLock : BlockBase(Material.IRON, "airlock"), ITileEntityProvider {
+object BlockAirLock : BlockModContainer("airlock", Material.IRON) {
 
-    override fun createNewTileEntity(worldIn: World?, meta: Int): TileEntity = TileAirLock()
+    override fun createTileEntity(worldIn: World, meta: IBlockState): TileEntity = TileAirLock()
 
     override fun breakBlock(worldIn: World, pos: BlockPos, state: IBlockState) {
         val tile = worldIn.getTileEntity(pos)
@@ -31,7 +33,7 @@ object BlockAirLock : BlockBase(Material.IRON, "airlock"), ITileEntityProvider {
                     if (i * i + j * j + k * k <= length) {
                         val state = world.getBlockState(pos.add(i, j, k))
                         if (state.block == BlockAirBubble) {
-                            if (!BlockAirBubble.PROPERTY_DECAY[state]) {
+                            if (!state[BlockAirBubble.PROPERTY_DECAY]) {
                                 world.setBlockState(pos.add(i, j, k), state.withProperty(BlockAirBubble.PROPERTY_DECAY, true))
                                 world.scheduleUpdate(pos.add(i, j, k), this, 0)
                             }

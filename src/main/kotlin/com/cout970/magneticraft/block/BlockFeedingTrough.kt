@@ -1,11 +1,15 @@
+@file:Suppress("DEPRECATION", "OverridingDeprecatedMember")
+
 package com.cout970.magneticraft.block
 
-import coffee.cypher.mcextlib.extensions.aabb.to
-import coffee.cypher.mcextlib.extensions.vectors.isHorizontal
-import coffee.cypher.mcextlib.extensions.worlds.getTile
+
+import com.cout970.magneticraft.block.itemblock.ItemBlockFeedingTrough
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.tileentity.getTile
 import com.cout970.magneticraft.tileentity.TileFeedingTrough
-import com.cout970.magneticraft.util.get
-import net.minecraft.block.ITileEntityProvider
+import com.cout970.magneticraft.util.vector.isHorizontal
+import com.cout970.magneticraft.util.vector.toAABBWith
+import com.teamwizardry.librarianlib.common.base.block.BlockModContainer
 import net.minecraft.block.material.Material
 import net.minecraft.block.properties.PropertyBool
 import net.minecraft.block.properties.PropertyDirection
@@ -13,6 +17,7 @@ import net.minecraft.block.state.BlockStateContainer
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.item.ItemBlock
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumBlockRenderType
 import net.minecraft.util.EnumFacing
@@ -25,16 +30,20 @@ import net.minecraft.world.World
 /**
  * Created by cout970 on 24/06/2016.
  */
-object BlockFeedingTrough : BlockBase(Material.WOOD, "feeding_trough"), ITileEntityProvider {
+object BlockFeedingTrough : BlockModContainer("feeding_trough", Material.WOOD) {
+
+    override fun createItemForm(): ItemBlock? {
+        return ItemBlockFeedingTrough(this)
+    }
 
     lateinit var FEEDING_TROUGH_IS_CENTER: PropertyBool
     lateinit var FEEDING_TROUGH_SIDE_POSITION: PropertyDirection
-    val boundingBox = Vec3d.ZERO to Vec3d(1.0, 0.75, 1.0)
+    val boundingBox = Vec3d.ZERO toAABBWith Vec3d(1.0, 0.75, 1.0)
 
     override fun getBoundingBox(state: IBlockState?, source: IBlockAccess?, pos: BlockPos?) = boundingBox
 
-    override fun createNewTileEntity(worldIn: World?, meta: Int) =
-        if (FEEDING_TROUGH_IS_CENTER[getStateFromMeta(meta)!!])
+    override fun createTileEntity(worldIn: World, meta: IBlockState) =
+        if (meta.get(FEEDING_TROUGH_IS_CENTER))
             TileFeedingTrough()
         else null
 
@@ -61,10 +70,10 @@ object BlockFeedingTrough : BlockBase(Material.WOOD, "feeding_trough"), ITileEnt
     }
 
     private fun getTileEntity(worldIn: World, pos: BlockPos, state: IBlockState) =
-        if (FEEDING_TROUGH_IS_CENTER[state]) {
+        if (state[FEEDING_TROUGH_IS_CENTER]) {
             worldIn.getTile<TileFeedingTrough>(pos)
         } else {
-            val dir = FEEDING_TROUGH_SIDE_POSITION[state]
+            val dir = state[FEEDING_TROUGH_SIDE_POSITION]
             worldIn.getTile<TileFeedingTrough>(pos.add(dir.directionVec))
         }
 
@@ -79,12 +88,12 @@ object BlockFeedingTrough : BlockBase(Material.WOOD, "feeding_trough"), ITileEnt
 
     override fun breakBlock(worldIn: World, pos: BlockPos, state: IBlockState) {
         super.breakBlock(worldIn, pos, state)
-        val dir = FEEDING_TROUGH_SIDE_POSITION[state]
+        val dir = state[FEEDING_TROUGH_SIDE_POSITION]
         worldIn.setBlockToAir(pos.add(dir.directionVec))
     }
 
     override fun getRenderType(state: IBlockState): EnumBlockRenderType {
-        if (!FEEDING_TROUGH_IS_CENTER[state]) {
+        if (!state[FEEDING_TROUGH_IS_CENTER]) {
             return EnumBlockRenderType.INVISIBLE
         }
         return super.getRenderType(state)
@@ -100,8 +109,8 @@ object BlockFeedingTrough : BlockBase(Material.WOOD, "feeding_trough"), ITileEnt
             return 0
         }
 
-        val sideMeta = EnumFacing.HORIZONTALS.indexOf(FEEDING_TROUGH_SIDE_POSITION[state]) shl 1
-        val centerMeta = if (FEEDING_TROUGH_IS_CENTER[state]) 1 else 0
+        val sideMeta = EnumFacing.HORIZONTALS.indexOf(state[FEEDING_TROUGH_SIDE_POSITION]) shl 1
+        val centerMeta = if (state[FEEDING_TROUGH_IS_CENTER]) 1 else 0
 
         return sideMeta + centerMeta
     }

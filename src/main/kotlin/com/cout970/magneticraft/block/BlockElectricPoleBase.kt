@@ -1,15 +1,22 @@
+@file:Suppress("DEPRECATION", "OverridingDeprecatedMember")
+
 package com.cout970.magneticraft.block
 
-import coffee.cypher.mcextlib.extensions.aabb.to
-import coffee.cypher.mcextlib.extensions.worlds.getTile
+
+
 import com.cout970.magneticraft.api.energy.IManualConnectionHandler
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.tileentity.TraitElectricity
+import com.cout970.magneticraft.misc.tileentity.getTile
+import com.cout970.magneticraft.misc.world.isServer
+import com.cout970.magneticraft.registry.ELECTRIC_NODE_HANDLER
 import com.cout970.magneticraft.registry.MANUAL_CONNECTION_HANDLER
-import com.cout970.magneticraft.registry.NODE_HANDLER
 import com.cout970.magneticraft.registry.fromTile
-import com.cout970.magneticraft.tileentity.electric.TileElectricBase
+import com.cout970.magneticraft.tileentity.TileBase
 import com.cout970.magneticraft.tileentity.electric.TileElectricPole
 import com.cout970.magneticraft.tileentity.electric.TileElectricPoleAdapter
-import com.cout970.magneticraft.util.get
+import com.cout970.magneticraft.util.vector.toAABBWith
+import com.teamwizardry.librarianlib.common.base.block.BlockMod
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.BlockStateContainer
 import net.minecraft.block.state.IBlockState
@@ -31,11 +38,11 @@ import net.minecraftforge.common.capabilities.ICapabilityProvider
 /**
  * Created by cout970 on 05/07/2016.
  */
-abstract class BlockElectricPoleBase(material: Material, name: String) : BlockBase(material, name), IManualConnectionHandler, ICapabilityProvider {
+abstract class BlockElectricPoleBase(material: Material, name: String) : BlockMod(name, material), IManualConnectionHandler, ICapabilityProvider {
 
     val boundingBox by lazy {
         val size = 0.0625 * 3
-        Vec3d(0.5 - size, 0.0, 0.5 - size) to Vec3d(0.5 + size, 1.0, 0.5 + size)
+        Vec3d(0.5 - size, 0.0, 0.5 - size) toAABBWith Vec3d(0.5 + size, 1.0, 0.5 + size)
     }
 
     override fun getBoundingBox(state: IBlockState?, source: IBlockAccess?, pos: BlockPos?) = boundingBox
@@ -46,7 +53,7 @@ abstract class BlockElectricPoleBase(material: Material, name: String) : BlockBa
     override fun isVisuallyOpaque() = false
 
     override fun getMetaFromState(state: IBlockState): Int =
-            ELECTRIC_POLE_PLACE[state].ordinal
+            state[ELECTRIC_POLE_PLACE].ordinal
 
     override fun getStateFromMeta(meta: Int): IBlockState? =
             defaultState.withProperty(ELECTRIC_POLE_PLACE, ElectricPoleStates.values()[meta])
@@ -96,7 +103,7 @@ abstract class BlockElectricPoleBase(material: Material, name: String) : BlockBa
 
     override fun breakBlock(worldIn: World, pos: BlockPos, state: IBlockState) {
         super.breakBlock(worldIn, pos, state)
-        val place = ELECTRIC_POLE_PLACE[state]
+        val place = state[ELECTRIC_POLE_PLACE]
         if (place == ElectricPoleStates.DOWN_1 || place == ElectricPoleStates.DOWN_2 || place == ElectricPoleStates.DOWN_3 || place == ElectricPoleStates.DOWN_4) {
             val newPos = getMainPos(state, pos)
             worldIn.setBlockToAir(newPos)
@@ -108,7 +115,7 @@ abstract class BlockElectricPoleBase(material: Material, name: String) : BlockBa
     }
 
     fun getMainPos(state: IBlockState, pos: BlockPos): BlockPos {
-        return when (ELECTRIC_POLE_PLACE[state]) {
+        return when (state[ELECTRIC_POLE_PLACE]) {
             ElectricPoleStates.DOWN_1 -> pos.offset(EnumFacing.UP, 1)
             ElectricPoleStates.DOWN_2 -> pos.offset(EnumFacing.UP, 2)
             ElectricPoleStates.DOWN_3 -> pos.offset(EnumFacing.UP, 3)
@@ -118,7 +125,7 @@ abstract class BlockElectricPoleBase(material: Material, name: String) : BlockBa
     }
 
     override fun getRenderType(state: IBlockState): EnumBlockRenderType {
-        return when (ELECTRIC_POLE_PLACE[state]) {
+        return when (state[ELECTRIC_POLE_PLACE]) {
             ElectricPoleStates.DOWN_1 -> EnumBlockRenderType.INVISIBLE
             ElectricPoleStates.DOWN_2 -> EnumBlockRenderType.INVISIBLE
             ElectricPoleStates.DOWN_3 -> EnumBlockRenderType.INVISIBLE
@@ -132,7 +139,7 @@ abstract class BlockElectricPoleBase(material: Material, name: String) : BlockBa
         val mainPos = getMainPos(state, thisBlock)
         val tile = world.getTileEntity(mainPos)
         val other = world.getTileEntity(otherBlock) ?: return false
-        val handler = NODE_HANDLER!!.fromTile(other) ?: return false
+        val handler = ELECTRIC_NODE_HANDLER!!.fromTile(other) ?: return false
         if (tile is TileElectricPole) {
             return tile.connectWire(handler, side)
         }
@@ -149,20 +156,25 @@ abstract class BlockElectricPoleBase(material: Material, name: String) : BlockBa
 
     override fun onBlockActivated(worldIn: World, pos: BlockPos, state: IBlockState?, playerIn: EntityPlayer, hand: EnumHand?, heldItem: ItemStack?, side: EnumFacing?, hitX: Float, hitY: Float, hitZ: Float): Boolean {
         if (playerIn.isSneaking && playerIn.heldItemMainhand == null) {
-            val te = worldIn.getTile<TileElectricBase>(pos)
+            val te = worldIn.getTile<TileBase>(pos)
             if (te != null) {
-                te.autoConnectWires = !te.autoConnectWires
-                if (!te.autoConnectWires) {
-                    te.clearWireConnections()
-                }
-                if (!worldIn.isRemote) {
-                    if (te.autoConnectWires) {
-                        playerIn.addChatComponentMessage(TextComponentTranslation("text.magneticraft.auto_connect.activate"))
-                    } else {
-                        playerIn.addChatComponentMessage(TextComponentTranslation("text.magneticraft.auto_connect.deactivate"))
+                val trait = te.traits.find { it is TraitElectricity }
+                if (trait is TraitElectricity) {
+                    trait.autoConnectWires = !trait.autoConnectWires
+                    if (!trait.autoConnectWires) {
+                        trait.clearWireConnections()
                     }
+                    if (worldIn.isServer) {
+                        if (trait.autoConnectWires) {
+                            playerIn.addChatComponentMessage(
+                                    TextComponentTranslation("text.magneticraft.auto_connect.activate"))
+                        } else {
+                            playerIn.addChatComponentMessage(
+                                    TextComponentTranslation("text.magneticraft.auto_connect.deactivate"))
+                        }
+                    }
+                    return true
                 }
-                return true
             }
         }
         return super.onBlockActivated(worldIn, pos, state, playerIn, hand, heldItem, side, hitX, hitY, hitZ)

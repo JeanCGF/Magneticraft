@@ -1,6 +1,5 @@
 package com.cout970.magneticraft
 
-import com.cout970.magneticraft.util.MOD_ID
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import net.minecraft.client.Minecraft
@@ -10,6 +9,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import java.io.File
 import java.io.FileWriter
 
+@Suppress("unused")
 /**
  * Created by cout970 on 11/06/2016.
  *
@@ -56,7 +56,7 @@ object Debug {
     }
 
     fun createItemJson(name: String, texName: String) {
-        val path = srcDir!!.absolutePath + "/src/main/resources/assets/$MOD_ID/models/item/$name.json"
+        val path = srcDir!!.absolutePath + "/src/main/resources/assets/${MOD_ID}/models/item/$name.json"
         val file = File(path)
         if (file.exists()) return
 
@@ -76,7 +76,7 @@ object Debug {
     }
 
     fun createBlockModelJson(name: String, parent: String, tex: Map<String, String>) {
-        val path = srcDir!!.absolutePath + "/src/main/resources/assets/$MOD_ID/models/block/$name.json"
+        val path = srcDir!!.absolutePath + "/src/main/resources/assets/${MOD_ID}/models/block/$name.json"
         val file = File(path)
         if (file.exists()) return
 
@@ -85,7 +85,7 @@ object Debug {
         val textures = JsonObject()
 
         json.addProperty("parent", "block/$parent")
-        for ((i, j) in tex) {
+        for ((i, j) in tex.entries) {
             textures.addProperty(i, "magneticraft:blocks/$j")
         }
         json.add("textures", textures)

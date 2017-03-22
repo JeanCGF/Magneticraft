@@ -1,6 +1,8 @@
+@file:Suppress("DEPRECATION", "OverridingDeprecatedMember")
+
 package com.cout970.magneticraft.block
 
-import com.cout970.magneticraft.util.get
+import com.cout970.magneticraft.misc.block.get
 import net.minecraft.block.Block
 import net.minecraft.block.material.Material
 import net.minecraft.block.properties.PropertyBool
@@ -31,7 +33,7 @@ object BlockAirBubble : BlockMultiState(Material.GLASS, "air_bubble") {
 
     override fun getBlockLayer(): BlockRenderLayer = BlockRenderLayer.CUTOUT
 
-    override fun getMetaFromState(state: IBlockState): Int = if (PROPERTY_DECAY[state]) 1 else 0
+    override fun getMetaFromState(state: IBlockState): Int = if (state[PROPERTY_DECAY]) 1 else 0
 
     override fun getStateFromMeta(meta: Int): IBlockState {
         return defaultState.withProperty(PROPERTY_DECAY, meta == 1)
@@ -44,14 +46,14 @@ object BlockAirBubble : BlockMultiState(Material.GLASS, "air_bubble") {
 
     override fun updateTick(worldIn: World, pos: BlockPos, state: IBlockState, rand: Random?) {
         super.updateTick(worldIn, pos, state, rand)
-        if (PROPERTY_DECAY[state]) {
+        if (state[PROPERTY_DECAY]) {
             worldIn.setBlockToAir(pos)
         }
     }
 
     override fun neighborChanged(state: IBlockState, worldIn: World, pos: BlockPos, blockIn: Block?) {
         super.neighborChanged(state, worldIn, pos, blockIn)
-        if (PROPERTY_DECAY[state] && RANDOM.nextBoolean()) {
+        if (state[PROPERTY_DECAY] && RANDOM.nextBoolean()) {
             worldIn.setBlockToAir(pos)
         }
     }

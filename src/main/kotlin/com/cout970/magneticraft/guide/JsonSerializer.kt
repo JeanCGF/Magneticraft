@@ -1,8 +1,9 @@
 package com.cout970.magneticraft.guide
 
-import coffee.cypher.mcextlib.extensions.resources.getResource
+
 import com.cout970.magneticraft.guide.components.*
 import com.cout970.magneticraft.util.resource
+import com.cout970.magneticraft.util.toResource
 import com.cout970.magneticraft.util.vector.Vec2d
 import com.google.gson.*
 import net.minecraft.item.Item
@@ -27,10 +28,12 @@ object JsonSerializer {
     val DEFAULT_BOOK_LOCATION = resource("guide/manual.json")
 
     fun read(resource: ResourceLocation = DEFAULT_BOOK_LOCATION): Book {
-        val reader = resource.getResource().inputStream.reader()
+        val reader = resource.toResource().inputStream.reader()
         return GSON.fromJson(reader, Book::class.java)
     }
 
+    // Debug only
+    @Suppress("unused")
     fun write(file: File, book: Book) {
         file.outputStream().writer().use {
             GSON.toJson(book, it)

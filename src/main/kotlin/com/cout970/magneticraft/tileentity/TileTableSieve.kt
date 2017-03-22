@@ -1,12 +1,16 @@
 package com.cout970.magneticraft.tileentity
 
-import com.cout970.magneticraft.util.get
 import com.cout970.magneticraft.api.internal.registries.machines.tablesieve.TableSieveRecipeManager
 import com.cout970.magneticraft.api.registries.machines.tablesieve.ITableSieveRecipe
-import com.cout970.magneticraft.util.itemInputHelper
-import com.cout970.magneticraft.util.itemOutputHelper
-import com.cout970.magneticraft.util.shouldTick
+import com.cout970.magneticraft.misc.inventory.ItemInputHelper
+import com.cout970.magneticraft.misc.inventory.ItemOutputHelper
+import com.cout970.magneticraft.misc.inventory.get
+import com.cout970.magneticraft.misc.tileentity.shouldTick
+import com.cout970.magneticraft.misc.world.isServer
+import com.cout970.magneticraft.util.add
+import com.cout970.magneticraft.util.newNbt
 import com.cout970.magneticraft.util.vector.vec3Of
+import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister
 import net.minecraft.item.ItemStack
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.ITickable
@@ -17,6 +21,7 @@ import java.util.*
 /**
  * Created by cout970 on 16/06/2016.
  */
+@TileRegister("table_sieve")
 class TileTableSieve : TileBase(), ITickable {
 
     val inventory = ItemStackHandler(1)
@@ -44,7 +49,7 @@ class TileTableSieve : TileBase(), ITickable {
 
     override fun update() {
         //gets the item on top of the block
-        val inputHelper = itemInputHelper(world, AxisAlignedBB(pos, pos.up().add(1.0, 1.0, 1.0)), inventory)
+        val inputHelper = ItemInputHelper(world, AxisAlignedBB(pos, pos.up().add(1.0, 1.0, 1.0)), inventory)
         if (shouldTick(UPDATE_TIME)) {
             inputHelper.suckItems()
         }
@@ -61,7 +66,7 @@ class TileTableSieve : TileBase(), ITickable {
     }
 
     fun craftItem() {
-        val outputHelper = itemOutputHelper(world, pos, vec3Of(0, -1, 0))
+        val outputHelper = ItemOutputHelper(world, pos, vec3Of(0, -1, 0))
         val stack = inventory[0]!!
         val recipe = getRecipe(stack) ?: return
         if (stack.stackSize < recipe.input.stackSize) return
@@ -77,16 +82,21 @@ class TileTableSieve : TileBase(), ITickable {
         }
     }
 
-    override fun save(): NBTTagCompound =
-            NBTTagCompound().apply { setTag("inventory", inventory.serializeNBT()) }
+    override fun save(): NBTTagCompound {
+        val nbt = newNbt {
+            add("inventory", inventory.serializeNBT())
+        }
+        return super.save().also { it.merge(nbt) }
+    }
 
     override fun load(nbt: NBTTagCompound) {
         inventory.deserializeNBT(nbt.getCompoundTag("inventory"))
+        super.load(nbt)
     }
 
     override fun onBreak() {
         super.onBreak()
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             if (inventory[0] != null) {
                 dropItem(inventory[0]!!, pos)
             }

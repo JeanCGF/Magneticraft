@@ -1,7 +1,5 @@
 package com.cout970.magneticraft.multiblock.impl
 
-import coffee.cypher.mcextlib.extensions.aabb.to
-import coffee.cypher.mcextlib.extensions.vectors.times
 import com.cout970.magneticraft.block.PROPERTY_ACTIVE
 import com.cout970.magneticraft.block.PROPERTY_CENTER
 import com.cout970.magneticraft.block.PROPERTY_DIRECTION
@@ -17,6 +15,7 @@ import com.cout970.magneticraft.multiblock.components.ContextBlockComponent
 import com.cout970.magneticraft.multiblock.components.MainBlockComponent
 import com.cout970.magneticraft.multiblock.components.SingleBlockComponent
 import com.cout970.magneticraft.tilerenderer.PIXEL
+import com.cout970.magneticraft.util.vector.times
 import net.minecraft.init.Blocks
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.AxisAlignedBB
@@ -45,21 +44,20 @@ object MultiblockGrinder : Multiblock() {
 
         val B: IMultiblockComponent = SingleBlockComponent(BlockMachineBlock.defaultState, replacement)
 
-        val P: IMultiblockComponent = ContextBlockComponent(
-                { ctx ->
-                    BlockMachineBlockSupportColumn.defaultState.withProperty(
-                            BlockMachineBlockSupportColumn.PROPERTY_STATES,
-                            BlockMachineBlockSupportColumn.States.fromAxis(ctx.facing.rotateY().axis))
-                }, ItemStack(BlockMachineBlockSupportColumn, 1, 1), replacement)
+        val P: IMultiblockComponent = ContextBlockComponent({ ctx ->
+            BlockMachineBlockSupportColumn.defaultState.withProperty(
+                    BlockMachineBlockSupportColumn.PROPERTY_STATES,
+                    BlockMachineBlockSupportColumn.States.fromAxis(ctx.facing.rotateY().axis))
+        }, ItemStack(BlockMachineBlockSupportColumn, 1, 1), replacement)
 
-        val O: IMultiblockComponent = ContextBlockComponent(
-                { ctx ->
-                    BlockMachineBlockSupportColumn.defaultState.withProperty(
-                            BlockMachineBlockSupportColumn.PROPERTY_STATES,
-                            BlockMachineBlockSupportColumn.States.fromAxis(ctx.facing.axis))
-                }, ItemStack(BlockMachineBlockSupportColumn, 1, 2), replacement)
+        val O: IMultiblockComponent = ContextBlockComponent({ ctx ->
+            BlockMachineBlockSupportColumn.defaultState.withProperty(
+                    BlockMachineBlockSupportColumn.PROPERTY_STATES,
+                    BlockMachineBlockSupportColumn.States.fromAxis(ctx.facing.axis))
+        }, ItemStack(BlockMachineBlockSupportColumn, 1, 2), replacement)
 
         val A: IMultiblockComponent = SingleBlockComponent(Blocks.AIR.defaultState, Blocks.AIR.defaultState)
+
         val F: IMultiblockComponent = SingleBlockComponent(BlockStripedMachineBlock.defaultState, replacement)
 
         val M: IMultiblockComponent = MainBlockComponent(BlockGrinder) { context, state, activate ->

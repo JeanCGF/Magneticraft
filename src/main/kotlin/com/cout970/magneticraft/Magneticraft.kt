@@ -2,11 +2,8 @@ package com.cout970.magneticraft
 
 import com.cout970.magneticraft.config.ConfigHandler
 import com.cout970.magneticraft.integration.IntegrationHandler
+import com.cout970.magneticraft.misc.CreativeTabMg
 import com.cout970.magneticraft.proxy.CommonProxy
-import com.cout970.magneticraft.util.LANG_ADAPTER
-import com.cout970.magneticraft.util.MOD_ID
-import com.cout970.magneticraft.util.MOD_NAME
-import com.cout970.magneticraft.util.MOD_VERSION
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.SidedProxy
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
@@ -55,6 +52,7 @@ object Magneticraft {
         log = event.modLog
         configFile = event.suggestedConfigurationFile
 
+        CreativeTabMg
         log.info("Starting pre-init")
         ConfigHandler.apply {
             load()

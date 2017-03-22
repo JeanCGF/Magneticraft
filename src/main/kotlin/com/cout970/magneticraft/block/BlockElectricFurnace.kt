@@ -1,8 +1,9 @@
 package com.cout970.magneticraft.block
 
 import com.cout970.magneticraft.Magneticraft
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.tileentity.electric.TileElectricFurnace
-import com.cout970.magneticraft.util.get
 import net.minecraft.block.ITileEntityProvider
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.BlockStateContainer
@@ -25,7 +26,7 @@ object BlockElectricFurnace : BlockMultiState(Material.IRON, "electric_furnace")
 
     override fun onBlockActivated(worldIn: World, pos: BlockPos, state: IBlockState?, playerIn: EntityPlayer, hand: EnumHand?, heldItem: ItemStack?, side: EnumFacing?, hitX: Float, hitY: Float, hitZ: Float): Boolean {
         if (!playerIn.isSneaking) {
-            if(!worldIn.isRemote) {
+            if(worldIn.isServer) {
                 playerIn.openGui(Magneticraft, -1, worldIn, pos.x, pos.y, pos.z)
             }
             return true
@@ -38,7 +39,7 @@ object BlockElectricFurnace : BlockMultiState(Material.IRON, "electric_furnace")
         worldIn?.setBlockState(pos, defaultState.withProperty(PROPERTY_DIRECTION, placer.horizontalFacing.opposite))
     }
 
-    override fun getMetaFromState(state: IBlockState): Int = PROPERTY_DIRECTION[state].ordinal
+    override fun getMetaFromState(state: IBlockState): Int = state[PROPERTY_DIRECTION].ordinal
 
     override fun getStateFromMeta(meta: Int): IBlockState = defaultState.withProperty(PROPERTY_DIRECTION, EnumFacing.getHorizontal(meta))
 

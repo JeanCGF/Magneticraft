@@ -2,10 +2,11 @@ package com.cout970.magneticraft.item
 
 import com.cout970.magneticraft.Debug
 import com.cout970.magneticraft.api.energy.IElectricNode
-import com.cout970.magneticraft.registry.NODE_HANDLER
+import com.cout970.magneticraft.misc.player.sendMessage
+import com.cout970.magneticraft.misc.world.isServer
+import com.cout970.magneticraft.registry.ELECTRIC_NODE_HANDLER
 import com.cout970.magneticraft.registry.fromTile
-import com.cout970.magneticraft.util.isServer
-import com.cout970.magneticraft.util.sendMessage
+import com.teamwizardry.librarianlib.common.base.item.ItemMod
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.ItemStack
 import net.minecraft.util.EnumActionResult
@@ -19,7 +20,7 @@ import org.lwjgl.input.Keyboard
 /**
  * Created by cout970 on 20/07/2016.
  */
-object ItemVoltmeter : ItemBase("voltmeter") {
+object ItemVoltmeter : ItemMod("voltmeter") {
 
     override fun onItemUse(stack: ItemStack?, playerIn: EntityPlayer, worldIn: World, pos: BlockPos, hand: EnumHand?, facing: EnumFacing?, hitX: Float, hitY: Float, hitZ: Float): EnumActionResult {
 
@@ -33,7 +34,7 @@ object ItemVoltmeter : ItemBase("voltmeter") {
         if (worldIn.isServer) {
             val tile = worldIn.getTileEntity(pos)
             if (tile != null) {
-                val handler = NODE_HANDLER!!.fromTile(tile)
+                val handler = ELECTRIC_NODE_HANDLER!!.fromTile(tile)
                 if (handler != null) {
                     for (i in handler.nodes) {
                         if (i is IElectricNode) {

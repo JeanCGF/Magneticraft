@@ -1,21 +1,26 @@
+@file:Suppress("DEPRECATION", "OverridingDeprecatedMember")
+
 package com.cout970.magneticraft.block.multiblock
 
-import coffee.cypher.mcextlib.extensions.worlds.getTile
+
 import com.cout970.magneticraft.Magneticraft
 import com.cout970.magneticraft.block.PROPERTY_ACTIVE
 import com.cout970.magneticraft.block.PROPERTY_CENTER
 import com.cout970.magneticraft.block.PROPERTY_DIRECTION
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.tileentity.getTile
+import com.cout970.magneticraft.misc.world.isClient
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.multiblock.MultiblockContext
 import com.cout970.magneticraft.multiblock.impl.MultiblockGrinder
 import com.cout970.magneticraft.tileentity.multiblock.TileGrinder
 import com.cout970.magneticraft.tileentity.multiblock.TileMultiblock
-import com.cout970.magneticraft.util.get
-import com.cout970.magneticraft.util.isServer
+import net.minecraft.block.Block
 import net.minecraft.block.ITileEntityProvider
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.BlockStateContainer
 import net.minecraft.block.state.IBlockState
-import net.minecraft.client.renderer.block.statemap.IStateMapper
+import net.minecraft.client.renderer.block.model.ModelResourceLocation
 import net.minecraft.client.renderer.block.statemap.StateMap
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
@@ -34,21 +39,19 @@ import net.minecraft.world.World
  */
 object BlockGrinder : BlockMultiblockHeat(Material.IRON, "grinder"), ITileEntityProvider {
 
-    private val REDSTONE_INPUT = BlockPos(-1, 0, 1)
-
     init {
         defaultState = defaultState.withProperty(PROPERTY_CENTER, false).withProperty(PROPERTY_ACTIVE, false)
     }
 
     override fun addCollisionBoxToList(state: IBlockState, worldIn: World, pos: BlockPos, entityBox: AxisAlignedBB?, collidingBoxes: MutableList<AxisAlignedBB>, entityIn: Entity?) {
-        if (PROPERTY_ACTIVE[state] && entityBox != null) {
+        if (state[PROPERTY_ACTIVE] && entityBox != null) {
             return super.addCollisionBoxToList(state, worldIn, pos, entityBox, collidingBoxes, entityIn)
         }
         return addCollisionBoxToList(pos, entityBox, collidingBoxes, state.getCollisionBoundingBox(worldIn, pos))
     }
 
     override fun getSelectedBoundingBox(state: IBlockState, worldIn: World, pos: BlockPos): AxisAlignedBB {
-        if (PROPERTY_ACTIVE[state]) {
+        if (state[PROPERTY_ACTIVE]) {
             return super.getSelectedBoundingBox(state, worldIn, pos)
         }
         return FULL_BLOCK_AABB.offset(pos)
@@ -60,18 +63,18 @@ object BlockGrinder : BlockMultiblockHeat(Material.IRON, "grinder"), ITileEntity
     override fun isVisuallyOpaque() = false
 
     override fun canRenderInLayer(state: IBlockState, layer: BlockRenderLayer?): Boolean {
-        return PROPERTY_CENTER[state] && !PROPERTY_ACTIVE[state] && super.canRenderInLayer(state, layer)
+        return state[PROPERTY_CENTER] && !state[PROPERTY_ACTIVE] && super.canRenderInLayer(state, layer)
     }
 
     override fun createNewTileEntity(worldIn: World, meta: Int): TileEntity? = createTileEntity(worldIn, getStateFromMeta(meta))
 
     override fun createTileEntity(world: World, state: IBlockState): TileEntity? {
-        if (PROPERTY_CENTER[state]) return TileGrinder()
+        if (state[PROPERTY_CENTER]) return TileGrinder()
         return TileMultiblock()
     }
 
     override fun removedByPlayer(state: IBlockState?, world: World?, pos: BlockPos?, player: EntityPlayer?, willHarvest: Boolean): Boolean {
-        if (PROPERTY_ACTIVE[state!!] && world!!.isServer) {
+        if (state!![PROPERTY_ACTIVE] && world!!.isServer) {
             breakBlock(world, pos!!, state)
             return false
         } else {
@@ -81,13 +84,13 @@ object BlockGrinder : BlockMultiblockHeat(Material.IRON, "grinder"), ITileEntity
 
     override fun getMetaFromState(state: IBlockState): Int {
         var meta = 0
-        if (PROPERTY_CENTER[state]) {
+        if (state[PROPERTY_CENTER]) {
             meta = meta or 8
         }
-        if (PROPERTY_ACTIVE[state]) {
+        if (state[PROPERTY_ACTIVE]) {
             meta = meta or 4
         }
-        val dir = PROPERTY_DIRECTION[state]
+        val dir = state[PROPERTY_DIRECTION]
         meta = meta or ((dir.ordinal - 2) and 3)
         return meta
     }
@@ -109,11 +112,11 @@ object BlockGrinder : BlockMultiblockHeat(Material.IRON, "grinder"), ITileEntity
     }
 
     override fun onBlockActivated(worldIn: World, pos: BlockPos, state: IBlockState, playerIn: EntityPlayer, hand: EnumHand?, heldItem: ItemStack?, side: EnumFacing?, hitX: Float, hitY: Float, hitZ: Float): Boolean {
-        if (worldIn.isRemote) return true
+        if (worldIn.isClient) return true
         if (playerIn.isSneaking) return true
-        if (hand == EnumHand.MAIN_HAND && PROPERTY_CENTER[state]) {
-            if (!PROPERTY_ACTIVE[state]) {
-                activateMultiblock(MultiblockContext(MultiblockGrinder, worldIn, pos, PROPERTY_DIRECTION[state], playerIn))
+        if (hand == EnumHand.MAIN_HAND && state[PROPERTY_CENTER]) {
+            if (!state[PROPERTY_ACTIVE]) {
+                activateMultiblock(MultiblockContext(MultiblockGrinder, worldIn, pos, state[PROPERTY_DIRECTION], playerIn))
             } else {
                 if (worldIn.getTile<TileGrinder>(pos) == null) return true
                 playerIn.openGui(Magneticraft, -1, worldIn, pos.x, pos.y, pos.z)
@@ -124,10 +127,14 @@ object BlockGrinder : BlockMultiblockHeat(Material.IRON, "grinder"), ITileEntity
     }
 
     override fun breakBlock(worldIn: World, pos: BlockPos, state: IBlockState) {
-        if (PROPERTY_ACTIVE[state]) {
+        if (state[PROPERTY_ACTIVE]) {
             super.breakBlock(worldIn, pos, state)
         }
     }
 
-    override fun getCustomStateMapper(): IStateMapper = StateMap.Builder().ignore(PROPERTY_ACTIVE, PROPERTY_CENTER).build()
+    override val stateMapper: ((Block) -> Map<IBlockState, ModelResourceLocation>)?
+        get() =  {
+            block ->
+            StateMap.Builder().ignore(PROPERTY_ACTIVE, PROPERTY_CENTER).build().putStateModelLocations(block)
+        }
 }

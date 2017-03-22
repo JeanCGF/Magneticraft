@@ -1,22 +1,30 @@
 package com.cout970.magneticraft.tileentity.electric
 
-import com.cout970.magneticraft.util.get
-import com.cout970.magneticraft.util.set
-import coffee.cypher.mcextlib.extensions.worlds.getTile
-import com.cout970.magneticraft.api.energy.IElectricNode
+
 import com.cout970.magneticraft.api.internal.energy.ElectricNode
 import com.cout970.magneticraft.block.PROPERTY_DIRECTION
 import com.cout970.magneticraft.config.Config
 import com.cout970.magneticraft.gui.common.DATA_ID_MACHINE_HEAT
 import com.cout970.magneticraft.gui.common.DATA_ID_MACHINE_WORKING
+import com.cout970.magneticraft.misc.ElectricConstants
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.block.isIn
+import com.cout970.magneticraft.misc.fluid.Tank
+import com.cout970.magneticraft.misc.gui.ValueAverage
+import com.cout970.magneticraft.misc.inventory.consumeItem
+import com.cout970.magneticraft.misc.inventory.get
+import com.cout970.magneticraft.misc.network.IBD
+import com.cout970.magneticraft.misc.render.AnimationTimer
+import com.cout970.magneticraft.misc.tileentity.ITileTrait
+import com.cout970.magneticraft.misc.tileentity.TraitElectricity
+import com.cout970.magneticraft.misc.tileentity.getTile
+import com.cout970.magneticraft.misc.tileentity.shouldTick
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.registry.FLUID_HANDLER
 import com.cout970.magneticraft.registry.ITEM_HANDLER
 import com.cout970.magneticraft.tileentity.TileBase
 import com.cout970.magneticraft.util.*
-import com.cout970.magneticraft.util.fluid.Tank
-import com.cout970.magneticraft.util.misc.AnimationTimer
-import com.cout970.magneticraft.util.misc.IBD
-import com.cout970.magneticraft.util.misc.ValueAverage
+import com.teamwizardry.librarianlib.common.util.autoregister.TileRegister
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.tileentity.TileEntityFurnace
 import net.minecraft.util.EnumFacing
@@ -30,11 +38,12 @@ import net.minecraftforge.items.ItemStackHandler
  * Created by cout970 on 04/07/2016.
  */
 
+@TileRegister("incendiary_generator")
 class TileIncendiaryGenerator(
         val tank: Tank = object : Tank(4000) {
             override fun canFillFluidType(fluid: FluidStack?): Boolean = fluid?.fluid?.name == "water"
         }
-) : TileElectricBase(), IFluidHandler by tank {
+) : TileBase(), IFluidHandler by tank {
 
     companion object {
         val MAX_HEAT = 500.toKelvinFromCelsius()
@@ -47,8 +56,12 @@ class TileIncendiaryGenerator(
     val fuelCache = FuelCache()
 
     var mainNode = ElectricNode({ world }, { pos }, capacity = 1.25)
-    override val electricNodes: List<IElectricNode>
-        get() = listOf(mainNode)
+
+    val traitElectricity = TraitElectricity(this, listOf(mainNode),
+            canConnectAtSideImpl = this::canConnectAtSide)
+
+    override val traits: List<ITileTrait> = listOf(traitElectricity)
+
     val inventory = ItemStackHandler(1)
     var maxBurningTime = 0f
     var burningTime = 0f
@@ -62,7 +75,7 @@ class TileIncendiaryGenerator(
 
     override fun update() {
 
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             //consumes fuel
             if (burningTime <= 0 && mainNode.voltage < 120) {
                 if (inventory[0] != null) {
@@ -87,7 +100,12 @@ class TileIncendiaryGenerator(
 
                 val speed = interpolate(heat.toDouble(), ambientTemperature.toDouble(), MAX_HEAT - 50)
                 val prod = Config.incendiaryGeneratorMaxProduction * speed
-                val applied = mainNode.applyPower((1 - interpolate(mainNode.voltage, TIER_1_MAX_VOLTAGE, TIER_1_GENERATORS_MAX_VOLTAGE)) * prod, false)
+                val interp = interpolate(
+                        v = mainNode.voltage,
+                        min = ElectricConstants.TIER_1_MAX_VOLTAGE,
+                        max = ElectricConstants.TIER_1_GENERATORS_MAX_VOLTAGE
+                )
+                val applied = mainNode.applyPower((1 - interp) * prod, false)
                 production += applied
 
                 heat -= applied.toFloat() / HEAT_TO_WATTS
@@ -110,15 +128,13 @@ class TileIncendiaryGenerator(
                 val data = IBD()
                 data.setBoolean(DATA_ID_MACHINE_WORKING, heat > STANDARD_AMBIENT_TEMPERATURE + 1)
                 data.setFloat(DATA_ID_MACHINE_HEAT, heat)
-                sendSyncData(data, Side.CLIENT)
+                //sendSyncData(data, Side.CLIENT)
+            }
+            if (shouldTick(200)) {
+                ambientTemperature = guessAmbientTemp(world, pos).toFloat()
             }
         }
         super.update()
-    }
-
-    override fun onLoad() {
-        super.onLoad()
-        ambientTemperature = guessAmbientTemp(world, pos).toFloat()
     }
 
     override fun receiveSyncData(data: IBD, side: Side) {
@@ -129,13 +145,16 @@ class TileIncendiaryGenerator(
         }
     }
 
-    override fun save(): NBTTagCompound = NBTTagCompound().apply {
-        setTag("inventory", inventory.serializeNBT())
-        setFloat("maxBurningTime", maxBurningTime)
-        setFloat("meltingTime", burningTime)
-        setFloat("heat", heat)
-        setDouble("fuelTemp", maxFuelTemp)
-        setTag("tank", NBTTagCompound().apply { tank.writeToNBT(this) })
+    override fun save(): NBTTagCompound {
+        val nbt = newNbt {
+            add("inventory", inventory.serializeNBT())
+            add("maxBurningTime", maxBurningTime)
+            add("meltingTime", burningTime)
+            add("heat", heat)
+            add("fuelTemp", maxFuelTemp)
+            add("tank", NBTTagCompound().apply { tank.writeToNBT(this) })
+        }
+        return super.save().also { it.merge(nbt) }
     }
 
     override fun load(nbt: NBTTagCompound) {
@@ -145,29 +164,30 @@ class TileIncendiaryGenerator(
         heat = nbt.getFloat("heat")
         maxFuelTemp = nbt.getDouble("fuelTemo")
         tank.readFromNBT(nbt.getCompoundTag("tank"))
+        super.load(nbt)
     }
 
     override fun onBreak() {
         super.onBreak()
-        if (!worldObj.isRemote) {
+        if (worldObj.isServer) {
             if (inventory[0] != null) {
                 dropItem(inventory[0]!!, pos)
             }
         }
     }
 
-    override fun canConnectAtSide(facing: EnumFacing?): Boolean {
+    fun canConnectAtSide(facing: EnumFacing?): Boolean {
         return facing == EnumFacing.UP
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> getCapability(capability: Capability<T>?, facing: EnumFacing?): T? {
+    override fun <T : Any> getCapability(capability: Capability<T>, facing: EnumFacing?): T? {
         if (capability == FLUID_HANDLER) return this as T
         if (capability == ITEM_HANDLER) return inventory as T
         return super.getCapability(capability, facing)
     }
 
-    override fun hasCapability(capability: Capability<*>?, facing: EnumFacing?): Boolean {
+    override fun hasCapability(capability: Capability<*>, facing: EnumFacing?): Boolean {
         if (capability == FLUID_HANDLER) return true
         if (capability == ITEM_HANDLER) return true
         return super.hasCapability(capability, facing)
@@ -176,27 +196,26 @@ class TileIncendiaryGenerator(
     fun getDirection(): EnumFacing {
         val state = world.getBlockState(pos)
         if (PROPERTY_DIRECTION.isIn(state)) {
-            return PROPERTY_DIRECTION[state]
+            return state[PROPERTY_DIRECTION]
         }
         return EnumFacing.NORTH
     }
 
+    @TileRegister("incendiary_generator_bottom")
     class TileIncendiaryGeneratorBottom : TileBase() {
 
         @Suppress("UNCHECKED_CAST")
-        override fun <T> getCapability(capability: Capability<T>?, facing: EnumFacing?): T? {
+        override fun <T : Any> getCapability(capability: Capability<T>, facing: EnumFacing?): T? {
             val tile = worldObj.getTile<TileIncendiaryGenerator>(pos.up())
             if (tile != null) return tile.getCapability(capability, facing)
             return super.getCapability(capability, facing)
         }
 
-        override fun hasCapability(capability: Capability<*>?, facing: EnumFacing?): Boolean {
+        override fun hasCapability(capability: Capability<*>, facing: EnumFacing?): Boolean {
             val tile = worldObj.getTile<TileIncendiaryGenerator>(pos.up())
             if (tile != null) return tile.hasCapability(capability, facing)
             return super.hasCapability(capability, facing)
         }
 
-        override fun save(): NBTTagCompound = NBTTagCompound()
-        override fun load(nbt: NBTTagCompound) = Unit
     }
 }

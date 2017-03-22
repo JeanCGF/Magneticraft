@@ -1,6 +1,6 @@
 package com.cout970.magneticraft.item.hammers
 
-import com.cout970.magneticraft.item.ItemBase
+import com.teamwizardry.librarianlib.common.base.item.ItemMod
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.item.Item
 import net.minecraft.item.ItemStack
@@ -8,7 +8,7 @@ import net.minecraft.util.DamageSource
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
 
-abstract class ItemHammer(type: String, val material: ToolMaterial) : ItemBase("${type}_hammer") {
+abstract class ItemHammer(type: String, val material: Item.ToolMaterial) : ItemMod("${type}_hammer") {
     abstract val damage: Int
 
     fun onHit(stack: ItemStack, hitBy: EntityLivingBase) {
@@ -35,22 +35,11 @@ abstract class ItemHammer(type: String, val material: ToolMaterial) : ItemBase("
         return true
     }
 
-    fun getToolMaterial(): Item.ToolMaterial {
-        return this.material
-    }
-
     /**
      * Return the enchantability factor of the item, most of the time is based on material.
      */
     override fun getItemEnchantability(): Int {
         return this.material.enchantability
-    }
-
-    /**
-     * Return the name for this tool's material.
-     */
-    fun getToolMaterialName(): String {
-        return this.material.toString()
     }
 
     /**

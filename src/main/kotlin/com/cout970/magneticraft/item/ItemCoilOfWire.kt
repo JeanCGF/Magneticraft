@@ -1,11 +1,13 @@
 package com.cout970.magneticraft.item
 
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.registry.MANUAL_CONNECTION_HANDLER
 import com.cout970.magneticraft.registry.fromBlock
 import com.cout970.magneticraft.util.checkNBT
 import com.cout970.magneticraft.util.getBlockPos
 import com.cout970.magneticraft.util.hasKey
 import com.cout970.magneticraft.util.setBlockPos
+import com.teamwizardry.librarianlib.common.base.item.ItemMod
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.item.ItemStack
 import net.minecraft.util.ActionResult
@@ -20,7 +22,7 @@ import net.minecraft.world.World
 /**
  * Created by cout970 on 17/07/2016.
  */
-object ItemCoilOfWire : ItemBase("coil_of_wire") {
+object ItemCoilOfWire : ItemMod("coil_of_wire") {
 
     val POSITION_KEY = "Position"
 
@@ -57,17 +59,17 @@ object ItemCoilOfWire : ItemBase("coil_of_wire") {
                 if (stack.hasKey(POSITION_KEY)) {
                     val basePos = stack.getBlockPos(POSITION_KEY)
                     if (handler.connectWire(basePos, pos, worldIn, playerIn, facing, stack)) {
-                        if (!worldIn.isRemote) {
+                        if (worldIn.isServer) {
                             playerIn.addChatComponentMessage(TextComponentTranslation("text.magneticraft.wire_connect.success"))
                         }
                     } else {
-                        if (!worldIn.isRemote) {
+                        if (worldIn.isServer) {
                             playerIn.addChatComponentMessage(TextComponentTranslation("text.magneticraft.wire_connect.fail"))
                         }
                     }
                     return EnumActionResult.SUCCESS
                 } else {
-                    if (!worldIn.isRemote) {
+                    if (worldIn.isServer) {
                         playerIn.addChatComponentMessage(TextComponentTranslation("text.magneticraft.wire_connect.no_other_connector"))
                     }
                 }

@@ -1,12 +1,13 @@
 package com.cout970.magneticraft.block.multiblock
 
-import coffee.cypher.mcextlib.extensions.aabb.plus
+
 import com.cout970.magneticraft.block.BlockMultiState
+import com.cout970.magneticraft.misc.player.sendMessage
+import com.cout970.magneticraft.misc.world.isServer
 import com.cout970.magneticraft.multiblock.ITileMultiblock
 import com.cout970.magneticraft.multiblock.MultiblockContext
 import com.cout970.magneticraft.multiblock.MultiblockManager
-import com.cout970.magneticraft.util.*
-import com.cout970.magneticraft.util.vector.vec3Of
+import com.cout970.magneticraft.util.vector.*
 import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.Minecraft
@@ -27,6 +28,7 @@ abstract class BlockMultiblock(material: Material, name: String) : BlockMultiSta
         lightOpacity = 0
     }
 
+    @Suppress("OverridingDeprecatedMember", "DEPRECATION")
     override fun addCollisionBoxToList(state: IBlockState, worldIn: World, pos: BlockPos, entityBox: AxisAlignedBB?, collidingBoxes: MutableList<AxisAlignedBB>, entityIn: Entity?) {
         if (entityBox != null) {
             val tile = worldIn.getTileEntity(pos)
@@ -62,7 +64,7 @@ abstract class BlockMultiblock(material: Material, name: String) : BlockMultiSta
 
             val start = player.getPositionEyes(0f)
             val look = player.getLook(0f)
-            val blockReachDistance = Minecraft.getMinecraft().playerController.blockReachDistance
+            val blockReachDistance = Minecraft.getMinecraft().playerController!!.blockReachDistance
             val end = start.addVector(look.xCoord * blockReachDistance, look.yCoord * blockReachDistance, look.zCoord * blockReachDistance)
 
             boxes.forEach { list.add(it.offset(relPos)) }
@@ -72,7 +74,7 @@ abstract class BlockMultiblock(material: Material, name: String) : BlockMultiSta
                     .map { it.key to it.value }
                     .sortedBy { it.second!!.hitVec.distanceTo(start) }
                     .firstOrNull()?.first
-            return res?.offset(pos).getOr(EMPTY_AABB)
+            return res?.offset(pos) ?: EMPTY_AABB
         }
         return super.getSelectedBoundingBox(state, worldIn, pos)
     }

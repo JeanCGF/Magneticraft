@@ -1,17 +1,23 @@
+@file:Suppress("DEPRECATION", "OverridingDeprecatedMember")
+
 package com.cout970.magneticraft.block
 
-import coffee.cypher.mcextlib.extensions.worlds.getTile
+
 import com.cout970.magneticraft.Magneticraft
+import com.cout970.magneticraft.block.itemblock.ItemBlockIncendiaryGenerator
+import com.cout970.magneticraft.misc.block.get
+import com.cout970.magneticraft.misc.tileentity.getTile
+import com.cout970.magneticraft.misc.world.isClient
 import com.cout970.magneticraft.registry.FLUID_HANDLER
 import com.cout970.magneticraft.tileentity.electric.TileIncendiaryGenerator
-import com.cout970.magneticraft.util.get
-import net.minecraft.block.ITileEntityProvider
+import com.teamwizardry.librarianlib.common.base.block.BlockModContainer
 import net.minecraft.block.material.Material
 import net.minecraft.block.properties.PropertyEnum
 import net.minecraft.block.state.BlockStateContainer
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.item.ItemBlock
 import net.minecraft.item.ItemStack
 import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.EnumBlockRenderType
@@ -26,7 +32,11 @@ import net.minecraftforge.fluids.FluidStack
 /**
  * Created by cout970 on 04/07/2016.
  */
-object BlockIncendiaryGenerator : BlockMultiState(Material.IRON, "incendiary_generator"), ITileEntityProvider {
+object BlockIncendiaryGenerator : BlockModContainer("incendiary_generator", Material.IRON) {
+
+    override fun createItemForm(): ItemBlock? {
+        return ItemBlockIncendiaryGenerator(this)
+    }
 
     lateinit var PROPERTY_LOCATION: PropertyEnum<BlockIncendiaryGenerator.Location>
         private set
@@ -37,8 +47,8 @@ object BlockIncendiaryGenerator : BlockMultiState(Material.IRON, "incendiary_gen
 
     override fun getRenderType(state: IBlockState): EnumBlockRenderType = EnumBlockRenderType.INVISIBLE
 
-    override fun createNewTileEntity(worldIn: World?, meta: Int): TileEntity? {
-        if (PROPERTY_LOCATION[getStateFromMeta(meta)] == Location.TOP) {
+    override fun createTileEntity(worldIn: World, meta: IBlockState): TileEntity? {
+        if (meta[PROPERTY_LOCATION] == Location.TOP) {
             return TileIncendiaryGenerator()
         }
         return TileIncendiaryGenerator.TileIncendiaryGeneratorBottom()
@@ -46,7 +56,7 @@ object BlockIncendiaryGenerator : BlockMultiState(Material.IRON, "incendiary_gen
 
     override fun breakBlock(worldIn: World, pos: BlockPos, state: IBlockState) {
         super.breakBlock(worldIn, pos, state)
-        if (PROPERTY_LOCATION[state] == Location.TOP) {
+        if (state[PROPERTY_LOCATION] == Location.TOP) {
             worldIn.setBlockToAir(pos.add(0, -1, 0))
         } else {
             worldIn.setBlockToAir(pos.add(0, 1, 0))
@@ -54,9 +64,9 @@ object BlockIncendiaryGenerator : BlockMultiState(Material.IRON, "incendiary_gen
     }
 
     override fun onBlockActivated(worldIn: World, position: BlockPos, state: IBlockState, playerIn: EntityPlayer, hand: EnumHand, heldItem: ItemStack?, side: EnumFacing?, hitX: Float, hitY: Float, hitZ: Float): Boolean {
-        if (worldIn.isRemote) return true
+        if (worldIn.isClient) return true
         if (playerIn.isSneaking) return false
-        val location = PROPERTY_LOCATION[state]
+        val location = state[PROPERTY_LOCATION]
         var pos = position
         if (location == Location.BASE) {
             pos = pos.add(0, 1, 0)
@@ -89,9 +99,9 @@ object BlockIncendiaryGenerator : BlockMultiState(Material.IRON, "incendiary_gen
     }
 
     override fun getMetaFromState(state: IBlockState): Int {
-        val location = PROPERTY_LOCATION[state]
+        val location = state[PROPERTY_LOCATION]
         if (location == Location.BASE) return 0
-        return PROPERTY_DIRECTION[state].horizontalIndex + 1
+        return state[PROPERTY_DIRECTION].horizontalIndex + 1
     }
 
     override fun getStateFromMeta(meta: Int): IBlockState {
